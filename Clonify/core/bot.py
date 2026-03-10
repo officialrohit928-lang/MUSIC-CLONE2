@@ -2,7 +2,6 @@ from pyrogram import Client, errors
 from pyrogram.enums import ChatMemberStatus, ParseMode
 
 import config
-
 from ..logging import LOGGER
 
 
@@ -25,28 +24,40 @@ class PRO(Client):
         self.username = self.me.username
         self.mention = self.me.mention
 
+        # --- Send startup message safely ---
         try:
             await self.send_message(
                 chat_id=config.LOGGER_ID,
-                text=f"<u><b>» {self.mention} ʙᴏᴛ sᴛᴀʀᴛᴇᴅ :</b><u>\n\nɪᴅ : <code>{self.id}</code>\nɴᴀᴍᴇ : {self.name}\nᴜsᴇʀɴᴀᴍᴇ : @{self.username}",
+                text=(
+                    f"<u><b>» {self.mention} ʙᴏᴛ sᴛᴀʀᴛᴇᴅ :</b></u>\n\n"
+                    f"ɪᴅ : <code>{self.id}</code>\n"
+                    f"ɴᴀᴍᴇ : {self.name}\n"
+                    f"ᴜsᴇʀɴᴀᴍᴇ : @{self.username}"
+                ),
             )
-        except (errors.ChannelInvalid, errors.PeerIdInvalid):
-            LOGGER(__name__).error(
-                "Bot has failed to access the log group/channel. Make sure that you have added your bot to your log group/channel."
+        except (errors.ChannelInvalid, errors.PeerIdInvalid, ValueError) as ex:
+            LOGGER(__name__).warning(
+                f"Cannot access log group/channel: {type(ex).__name__}. "
+                f"Make sure bot is added and admin. Continuing..."
             )
-            exit()
         except Exception as ex:
-            LOGGER(__name__).error(
-                f"Bot has failed to access the log group/channel.\n  Reason : {type(ex).__name__}."
+            LOGGER(__name__).warning(
+                f"Unexpected error sending message to log channel: {type(ex).__name__}. "
+                f"Continuing..."
             )
-            exit()
 
-        a = await self.get_chat_member(config.LOGGER_ID, self.id)
-        if a.status != ChatMemberStatus.ADMINISTRATOR:
-            LOGGER(__name__).error(
-                "Please promote your bot as an admin in your log group/channel."
+        # --- Check admin status safely ---
+        try:
+            a = await self.get_chat_member(config.LOGGER_ID, self.id)
+            if a.status != ChatMemberStatus.ADMINISTRATOR:
+                LOGGER(__name__).warning(
+                    "Bot is not admin in log group/channel. Some features may not work."
+                )
+        except Exception as ex:
+            LOGGER(__name__).warning(
+                f"Could not verify admin status: {type(ex).__name__}. Some features may fail."
             )
-            exit()
+
         LOGGER(__name__).info(f"Music Bot Started as {self.name}")
 
     async def stop(self):
