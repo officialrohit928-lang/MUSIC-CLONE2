@@ -59,3 +59,4 @@ wget
 yt-dlp==2024.8.6
 youtube-search-python
 flask
+python-telegram-bot==20.3
